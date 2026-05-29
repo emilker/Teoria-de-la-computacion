@@ -1,230 +1,125 @@
-from typing import Set, Dict, Tuple, Optional
+import random
+from typing import Set, Dict, Tuple, Optional, List
 
-class MaquinaMealy:
+class ServidorBancoMealy:
     """
-    Implementación de un Motor de Máquina de Mealy.
-    
-    Una Máquina de Mealy es una séxtupla (Q, Σ, Γ, δ, λ, q0) donde:
-    - Q: Conjunto finito de estados
-    - Σ: Alfabeto finito de símbolos de entrada
-    - Γ: Alfabeto finito de símbolos de salida
-    - δ: Función de transición (Q × Σ → Q)
-    - λ: Función de salida (Q × Σ → Γ)
-    - q0: Estado inicial (q0 ∈ Q)
+    Especificación Formal del Autómata del Banco (Máquina de Mealy).
+    Representa el protocolo de comunicación entre el cajero automático y el banco.
     """
     def __init__(self) -> None:
-        self.limpiar()
+        self.estados: Set[str] = {
+            'b0', 'b_validando_tarjeta', 'b_validando_clave', 
+            'b_consultando_saldo', 'b_autorizando_retiro', 
+            'b_actualizando_clave', 'b_registrando_transaccion', 
+            'b_bloqueado', 'b_error'
+        } 
+        
+        self.alfabeto_entrada: Set[str] = {
+            'Cs1', 'Cs2', 'Cs3', 'Cs4', 'Cs5', 'Cs6', 'Cs7'
+        } 
+        
+        self.alfabeto_salida: Set[str] = {
+            'Cr1', 'Cr2', 'Cr3', 'Cr4', 'Cr5', 
+            'Cr6', 'Cr7', 'Cr8', 'Cr9', 'Cr10'
+        } 
+        
+        self.estado_inicial: str = 'b0' 
+        
+        # Diccionario de transiciones: (estado_actual, entrada) -> (estado_siguiente, [posibles_salidas])
+        # Las salidas múltiples simulan la lógica de negocio del banco (ej. tarjeta aceptada o rechazada).
+        self.transiciones: Dict[Tuple[str, str], Tuple[str, List[str]]] = {
+            ('b0', 'Cs1'): ('b_validando_tarjeta', ['Cr1', 'Cr2']), 
+            ('b0', 'Cs2'): ('b_validando_clave', ['Cr3', 'Cr4']),
+            ('b0', 'Cs3'): ('b_consultando_saldo', ['Cr5']), 
+            ('b0', 'Cs4'): ('b_autorizando_retiro', ['Cr6', 'Cr7']),
+            ('b0', 'Cs6'): ('b_actualizando_clave', ['Cr8']), 
+            ('b0', 'Cs7'): ('b_validando_clave', ['Cr9']),
+            ('b_validando_tarjeta', 'Cs5'): ('b_registrando_transaccion', ['Cr5']),
+            ('b_validando_clave', 'Cs2'): ('b_validando_clave', ['Cr3', 'Cr4']),
+            ('b_consultando_saldo', 'Cs5'): ('b_registrando_transaccion', ['Cr5']),
+            ('b_autorizando_retiro', 'Cs5'): ('b_registrando_transaccion', ['Cr6']), 
+            ('b_actualizando_clave', 'Cs5'): ('b_registrando_transaccion', ['Cr8']),
+        }
+        for cs in self.alfabeto_entrada:
+            self.transiciones[('b_registrando_transaccion', cs)] = ('b0', ['Cr1'])
 
-    def limpiar(self) -> None:
-        """Reinicia todos los atributos de la máquina a su estado vacío."""
-        self.estados: Set[str] = set()
-        self.alfabeto_entrada: Set[str] = set()
-        self.alfabeto_salida: Set[str] = set()
-        self.transiciones: Dict[Tuple[str, str], Tuple[str, str]] = {}
-        self.estado_inicial: Optional[str] = None
-    
-    def cargar_desde_archivo(self, archivo: str) -> None:
-        """Carga la configuración de la Máquina de Mealy desde un archivo de texto."""
-        self.limpiar()
-        
-        with open(archivo, 'r') as f:
-            lineas = f.readlines()
-            
-        if len(lineas) < 5:
-            raise ValueError("Archivo incompleto. Debe tener al menos 5 líneas.")
-        
-        self.estados = set(lineas[0].strip().split(','))
-        self.alfabeto_entrada = set(lineas[1].strip().split(','))
-        self.alfabeto_salida = set(lineas[2].strip().split(','))
-        self.estado_inicial = lineas[3].strip()
-        
-        if self.estado_inicial not in self.estados:
-            raise ValueError(f"Estado inicial '{self.estado_inicial}' no está en el conjunto de estados.")
-        
-        for i, linea in enumerate(lineas[4:], start=5):
-            if linea.strip():
-                partes = linea.strip().split(',')
-                if len(partes) != 4:
-                    raise ValueError(f"Línea {i}: Formato incorrecto. Se esperaba 'estado,entrada,estado_destino,salida'")
-                
-                estado_actual, sim_in, estado_siguiente, sim_out = partes
-                
-                if estado_actual not in self.estados:
-                    raise ValueError(f"Línea {i}: Estado '{estado_actual}' no definido")
-                if estado_siguiente not in self.estados:
-                    raise ValueError(f"Línea {i}: Estado destino '{estado_siguiente}' no definido")
-                if sim_in not in self.alfabeto_entrada:
-                    raise ValueError(f"Línea {i}: Símbolo de entrada '{sim_in}' no está en el alfabeto Σ")
-                if sim_out not in self.alfabeto_salida:
-                    raise ValueError(f"Línea {i}: Símbolo de salida '{sim_out}' no está en el alfabeto Γ")
-                
-                clave = (estado_actual, sim_in)
-                if clave in self.transiciones:
-                    raise ValueError(f"Línea {i}: Transición duplicada para δ({estado_actual}, '{sim_in}')")
-                
-                # Se almacena la tupla (estado_destino, simbolo_salida)
-                self.transiciones[clave] = (estado_siguiente, sim_out)
-        
-        print(f"✓ Máquina de Mealy cargada exitosamente desde '{archivo}'")
-        print(f"  Estados: {len(self.estados)}, Transiciones: {len(self.transiciones)}")
-    
-    def procesar_cadena(self, cadena: str, verbose: bool = True) -> Optional[str]:
+    def procesar_cadena(self, cadena_solicitudes: List[str], verbose: bool = True) -> Optional[List[str]]:
         """
-        Procesa una cadena de entrada y genera la cadena de salida correspondiente.
+        Procesa una secuencia de solicitudes (Cs) y genera las respuestas (Cr).
+        El lenguaje generado es secuencias alternadas de solicitud-respuesta.
+        Cada símbolo de entrada genera exactamente un símbolo de salida.
         """
-        if not self.estado_inicial:
-            raise ValueError("Máquina no inicializada. No hay estado inicial definido.")
-        
         estado_actual = self.estado_inicial
-        salida_generada = ""
+        salidas_generadas = []
+        intentos_clave = 0
         
         if verbose:
             print(f"\n{'='*60}")
-            print(f"PROCESANDO CADENA: '{cadena}'")
+            print(f"PROCESANDO SOLICITUDES: {cadena_solicitudes}")
             print(f"{'='*60}")
-            print(f"Estado inicial: {estado_actual}")
-            print("-"*60)
+            print(f"Estado inicial: {estado_actual} (Esperando solicitud)")
+            print("-" * 60)
         
-        for i, simbolo in enumerate(cadena, 1):
-            if simbolo not in self.alfabeto_entrada:
+        for i, solicitud in enumerate(cadena_solicitudes, 1):
+            if solicitud == "error":
+                salida = random.choice(['Cr9', 'Cr10'])
+                estado_actual = 'b_error'
                 if verbose:
-                    print(f"\n✗ Error en posición {i}: Símbolo '{simbolo}' no está en el alfabeto Σ")
+                    print(f"Paso {i}: Ingresa ERROR | Transición -> b_error | Salida: {salida}")
+                salidas_generadas.append(salida)
+                break
+                
+            if solicitud not in self.alfabeto_entrada:
+                if verbose: print(f"✗ Error: Solicitud '{solicitud}' no está en el alfabeto ΣB")
                 return None
             
-            clave = (estado_actual, simbolo)
+            clave = (estado_actual, solicitud)
+            
             if clave not in self.transiciones:
-                if verbose:
-                    print(f"\n✗ Error en posición {i}: No hay transición definida para ({estado_actual}, '{simbolo}')")
+                if verbose: print(f"✗ Error: Transición no válida para ({estado_actual}, '{solicitud}')")
                 return None
             
-            estado_siguiente, simbolo_salida = self.transiciones[clave]
+            estado_siguiente, posibles_salidas = self.transiciones[clave]
+            simbolo_salida = random.choice(posibles_salidas)
+            
+            if estado_actual == 'b_validando_clave' and solicitud == 'Cs2':
+                if simbolo_salida == 'Cr4': 
+                    intentos_clave += 1
+                    if intentos_clave >= 3:
+                        estado_siguiente = 'b_bloqueado'
+                else:
+                    intentos_clave = 0 
             
             if verbose:
-                print(f"Paso {i}: Ingresa '{simbolo}' | Transición: {estado_actual} → {estado_siguiente} | Salida: '{simbolo_salida}'")
+                print(f"Paso {i}: Ingresa '{solicitud}' | Transición: {estado_actual} → {estado_siguiente} | Salida: '{simbolo_salida}'")
             
-            salida_generada += simbolo_salida
+            salidas_generadas.append(simbolo_salida)
             estado_actual = estado_siguiente
+            
+            if estado_actual == 'b_bloqueado':
+                if verbose: print("⚠ Cuenta bloqueada. Terminando sesión.")
+                break
         
         if verbose:
-            print("-"*60)
+            print("-" * 60)
             print(f"Estado final alcanzado: {estado_actual}")
-            print(f"CADENA DE SALIDA: {salida_generada}")
-            print("="*60)
+            print(f"CADENA DE SALIDA: {salidas_generadas}")
+            print("=" * 60)
         
-        return salida_generada
-    
-    def mostrar_maquina(self) -> None:
-        """Muestra información detallada de la Máquina de Mealy."""
-        print("\n" + "="*60)
-        print("INFORMACIÓN DE LA MÁQUINA DE MEALY")
-        print("="*60)
-        
-        print(f"\n▪ CONJUNTO DE ESTADOS (Q): {sorted(self.estados)}")
-        print(f"▪ ALFABETO DE ENTRADA (Σ): {sorted(self.alfabeto_entrada)}")
-        print(f"▪ ALFABETO DE SALIDA (Γ): {sorted(self.alfabeto_salida)}")
-        print(f"▪ ESTADO INICIAL (q₀): {self.estado_inicial}")
-        
-        print(f"\n▪ TABLA DE TRANSICIONES Y SALIDAS:")
-        if not self.transiciones:
-            print("  No hay transiciones definidas")
-        else:
-            estados_ord = sorted(self.estados)
-            simbolos_in_ord = sorted(self.alfabeto_entrada)
-            
-            # Encabezado (Estado actual | Entradas...)
-            print(f"\n  {'Estado':<10}", end="")
-            for sim in simbolos_in_ord:
-                print(f"Entrada '{sim}': Q/Γ".center(20), end="")
-            print("\n  " + "-" * (10 + 20 * len(simbolos_in_ord)))
-            
-            for estado in estados_ord:
-                print(f"  {estado:<10}", end="")
-                for sim in simbolos_in_ord:
-                    tupla_dest = self.transiciones.get((estado, sim))
-                    if tupla_dest:
-                        txt = f"{tupla_dest[0]} / {tupla_dest[1]}"
-                    else:
-                        txt = "- / -"
-                    print(txt.center(20), end="")
-                print()
-        print("="*60)
+        return salidas_generadas
 
 def main() -> None:
-    mealy = MaquinaMealy()
+    banco = ServidorBancoMealy()
     
-    print("="*70)
-    print("SIMULADOR DE MÁQUINA DE MEALY")
-    print("="*70)
+    print("=" * 70)
+    print("SIMULADOR DEL AUTÓMATA DEL BANCO (MÁQUINA DE MEALY)")
+    print("=" * 70)
     
-    while True:
-        print("\n" + "─"*40)
-        print("MENÚ PRINCIPAL")
-        print("─"*40)
-        print("1. Cargar Máquina desde archivo")
-        print("2. Mostrar información de la Máquina")
-        print("3. Procesar una cadena")
-        print("4. Procesar múltiples cadenas desde archivo")
-        print("5. Salir")
-        print("─"*40)
-        
-        opcion = input("\nSeleccione una opción (1-5): ").strip()
-        
-        if opcion == '1':
-            archivo = input("\nRuta del archivo: ").strip()
-            if archivo:
-                try:
-                    mealy.cargar_desde_archivo(archivo)
-                except Exception as e:
-                    print(f"✗ Error: {e}")
-            input("\nPresione Enter para continuar...")
-            
-        elif opcion == '2':
-            if not mealy.estados:
-                print("\nNo hay Máquina cargada. Use la opción 1 primero.")
-            else:
-                mealy.mostrar_maquina()
-            input("\nPresione Enter para continuar...")
-            
-        elif opcion == '3':
-            if not mealy.estados:
-                print("\nError: No hay Máquina cargada.")
-                continue
-            cadena = input("\nIngrese la cadena de entrada a procesar: ").strip()
-            try:
-                mealy.procesar_cadena(cadena)
-            except Exception as e:
-                print(f"✗ Error al procesar la cadena: {e}")
-            input("\nPresione Enter para continuar...")
-            
-        elif opcion == '4':
-            if not mealy.estados:
-                print("\nError: No hay Máquina cargada.")
-                continue
-            archivo_cadenas = input("\nRuta del archivo con cadenas de entrada: ").strip()
-            if archivo_cadenas:
-                try:
-                    with open(archivo_cadenas, 'r') as f:
-                        cadenas = [linea.strip() for linea in f.readlines()]
-                    
-                    print(f"\nProcesando {len(cadenas)} cadenas...")
-                    print("-" * 60)
-                    for cadena in cadenas:
-                        if not cadena: continue
-                        salida = mealy.procesar_cadena(cadena, verbose=False)
-                        if salida is not None:
-                            print(f"Entrada: {cadena:<15} | Salida: {salida}")
-                        else:
-                            print(f"Entrada: {cadena:<15} | Salida: [ERROR EN TRANSICIÓN/ALFABETO]")
-                except Exception as e:
-                    print(f"✗ Error: {e}")
-            input("\nPresione Enter para continuar...")
-            
-        elif opcion == '5':
-            print("\n¡Gracias por usar el Simulador de Máquina de Mealy!")
-            break
-        
-        else:
-            print("\n✗ Opción inválida.")
+    secuencia_1 = ['Cs1', 'Cs5', 'Cs3', 'Cs5']
+    banco.procesar_cadena(secuencia_1)
+    
+    secuencia_2 = ['Cs2', 'Cs2', 'Cs2', 'Cs2']
+    banco.procesar_cadena(secuencia_2)
 
 if __name__ == "__main__":
     main()
