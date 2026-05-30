@@ -7,7 +7,7 @@ class AFD:
     Un AFD es una tupla (Q, Σ, δ, q0, F) donde:
     - Q: Conjunto finito de estados
     - Σ: Alfabeto finito de símbolos de entrada
-    - δ: Función de transición (Q × Σ → Q)
+    - δ: Función de transición (Q X Σ → Q)
     - q0: Estado inicial (q0 ∈ Q)
     - F: Conjunto de estados de aceptación (F ⊆ Q)
     

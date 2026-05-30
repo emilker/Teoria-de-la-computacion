@@ -1,0 +1,6 @@
+Cs1,Cs5,Cs3,Cs5
+Cs2,Cs2,Cs2,Cs2
+Cs4,Cs5,Cs1,Cs5
+Cs3,Cs5,Cs2
+error
+Cs1,Cs5,CsX
