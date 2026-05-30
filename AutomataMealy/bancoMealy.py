@@ -125,7 +125,7 @@ def main() -> None:
     
     # Rutas estáticas a los archivos usando raw strings (r"") para evitar problemas con \T, \A, etc.
     archivo_definicion = r"AutomataMealy\Definiciones\definicionBanco.txt"
-    archivo_cadenas = r"AutomataMealy\example\cadenasBanco.txt"
+    archivo_cadenas = r"AutomataMealy\Example\cadenasBanco.txt"
     
     # 1. Cargar el autómata automáticamente
     print(f"\nIntentando cargar definición desde: {archivo_definicion}")
