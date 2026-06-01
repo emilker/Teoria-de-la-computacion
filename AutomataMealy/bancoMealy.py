@@ -51,7 +51,7 @@ class ServidorBancoMealy:
             
         print(f"✓ Autómata del Banco cargado. {len(self.transiciones)} transiciones registradas.")
 
-    def procesar_cadena(self, cadena_solicitudes: List[str], verbose: bool = True) -> Optional[List[str]]:
+    def procesar_cadena(self, cadena_solicitudes: List[str], verbose: bool = True, deterministic: bool = False) -> Optional[List[str]]:
         if not self.estado_inicial:
             print("✗ Error: El autómata no ha sido cargado.")
             return None
@@ -69,7 +69,7 @@ class ServidorBancoMealy:
         
         for i, solicitud in enumerate(cadena_solicitudes, 1):
             if solicitud == "error":
-                salida = random.choice(['Cr9', 'Cr10'])
+                salida = 'Cr9' if deterministic else random.choice(['Cr9', 'Cr10'])
                 estado_actual = 'b_error'
                 if verbose:
                     print(f"Paso {i}: Ingresa ERROR | Transición -> b_error | Salida: {salida}")
@@ -87,7 +87,10 @@ class ServidorBancoMealy:
                 return None
             
             estado_siguiente, posibles_salidas = self.transiciones[clave]
-            simbolo_salida = random.choice(posibles_salidas)
+            if deterministic:
+                simbolo_salida = posibles_salidas[0] if posibles_salidas else None
+            else:
+                simbolo_salida = random.choice(posibles_salidas)
             
             # Lógica dura de negocio específica del banco
             if estado_actual == 'b_validando_clave' and solicitud == 'Cs2':

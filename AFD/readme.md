@@ -70,105 +70,149 @@ q2,1,q2
 Además del uso de archivos, el motor permite **definir completamente un AFD desde la consola**, solicitando al usuario:
 
 1. Conjunto de estados  
-2. Alfabeto de símbolos  
-3. Estado inicial  
-4. Estados de aceptación  
-5. Función de transición δ  
+ # Motor de Autómatas Finitos Deterministas (AFD)
 
-Durante este proceso se realizan validaciones automáticas para asegurar que el autómata sea determinista y consistente.
+Este repositorio contiene un simulador educativo de Autómatas Finitos Deterministas (AFD) escrito en Python. Permite definir autómatas, validar su estructura y simular el procesamiento de cadenas, ya sea mediante archivos de definición o mediante entrada interactiva por consola.
 
-Esta modalidad es especialmente útil para **aprendizaje, pruebas rápidas y ejercicios académicos**.
+**Áreas de uso:** cursos de Teoría de la Computación, Lenguajes Formales y prácticas académicas.
 
----
+**Contenido del repositorio**
+- `AFD/afd.py`: implementación principal del simulador y la interfaz de consola.
+- `AFD/examples/automata.txt`: ejemplo de definición de AFD.
+- `AFD/examples/cadena.txt`: ejemplo de archivo con cadenas de prueba (una por línea).
 
-## ▶ Ejecución del motor
+**Características principales**
+- Carga de AFD desde archivo de texto
+- Configuración manual interactiva por consola
+- Validaciones (estados, alfabeto, determinismo, completitud parcial)
+- Procesamiento paso a paso de cadenas y modo silencioso para lote
+- Visualización de tabla de transiciones y estadísticas
 
-Ejecuta el programa desde la terminal:
+**Requisitos**
+- Python 3.8+ (probable compatibilidad con 3.7)
+
+## Formato del archivo de definición
+El archivo de definición debe contener al menos 5 líneas con este orden:
+
+1. Conjunto de estados (separados por comas)
+2. Alfabeto (símbolos separados por comas)
+3. Estado inicial
+4. Estados finales (separados por comas)
+5. Transiciones, una por línea: `estado_actual,símbolo,estado_destino`
+
+Ejemplo mínimo:
+
+```
+q0,q1,q2
+0,1
+q0
+q2
+q0,0,q1
+q0,1,q0
+q1,0,q2
+q1,1,q0
+q2,0,q2
+q2,1,q2
+```
+
+## Uso
+
+Abrir una terminal, situarse en la carpeta `AFD` y ejecutar:
 
 ```bash
 python afd.py
-````
+```
 
-Se mostrará un **menú interactivo** con las siguientes opciones:
+Se mostrará un menú interactivo con las opciones:
 
 1. Cargar AFD desde archivo
 2. Configurar AFD manualmente
-3. Mostrar información del AFD
+3. Mostrar información del AFD actual
 4. Procesar una cadena
 5. Procesar múltiples cadenas desde archivo
 6. Salir
 
+Pasos rápidos con los archivos de ejemplo:
+
+- Para cargar el autómata de ejemplo, desde la opción 1 ingresa la ruta:
+
+  `examples/automata.txt`
+
+- Para procesar varias cadenas (una por línea), usa la opción 5 e ingresa:
+
+  `examples/cadena.txt`
+
+Nota: las rutas pueden ser relativas a la carpeta `AFD` o rutas absolutas en tu sistema.
+
+## Mensajes y errores frecuentes
+
+- Si el archivo no contiene suficientes líneas, el programa mostrará un error de formato.
+- Si una transición referencia un estado o símbolo no declarado, se informará la línea problemática.
+- El simulador indica si faltan transiciones para un AFD «completo» (advertencia, no obliga a completarlo).
+
+## Ejemplo de flujo (manual)
+
+1. Ejecutar `python afd.py`.
+2. Elegir opción 1 y cargar `examples/automata.txt`.
+3. Elegir opción 4 para procesar una cadena individual o opción 5 para un archivo de cadenas.
+
+## Contribuciones
+
+Pequeñas mejoras, correcciones de formato y adición de nuevos ejemplos son bienvenidas. Para cambios mayores, por favor abre un issue describiendo el objetivo.
+
+## Licencia
+
+Proyecto con fines educativos. Puedes reutilizar el código en ejercicios y proyectos académicos citando su procedencia.
+
 ---
 
-##  Procesamiento de cadenas
+## Ejemplos
 
-El motor permite procesar cadenas de símbolos:
+Se incluyen dos archivos de ejemplo en la carpeta `examples/`:
 
-* Modo **detallado** (paso a paso)
-* Modo **silencioso** (ideal para procesamiento masivo)
+- `examples/automata.txt`: definición de un AFD de ejemplo.
+- `examples/cadena.txt`: conjunto de cadenas de prueba (una por línea).
 
-Ejemplo de salida:
+Contenido de ejemplo (`examples/automata.txt`):
 
 ```
-Procesando cadena: 0101
-Estado inicial: q0
-δ(q0, '0') = q1
-δ(q1, '1') = q0
-...
-Estado final alcanzado: q0
-✗ CADENA RECHAZADA
+q0,q1,q2
+0,1
+q0
+q2
+q0,0,q1
+q0,1,q0
+q1,0,q2
+q1,1,q0
+q2,0,q2
+q2,1,q2
 ```
 
----
+Ejemplo de `examples/cadena.txt` (selección):
 
-##  Visualización del AFD
+```
+00
+100
+0100
+1100
+000
+001
+... (más cadenas)
+```
 
-El motor muestra:
+## Comandos rápidos
 
-* Conjunto de estados
-* Alfabeto
-* Estado inicial
-* Estados finales
-* Tabla matricial de la función de transición
-* Porcentaje de completitud del autómata
+Abrir una terminal, situarse en la carpeta `AFD` y ejecutar el simulador:
 
-Esto facilita la **verificación formal y didáctica** del AFD.
+```bash
+python afd.py
+```
 
----
+Pasos útiles desde la línea de comandos:
 
-##  Objetivo del proyecto
+- Cargar el autómata de ejemplo (opción 1): escribe `examples/automata.txt` cuando se pida la ruta.
+- Procesar múltiples cadenas (opción 5): escribe `examples/cadena.txt` cuando se pida la ruta.
 
-Este motor fue desarrollado con fines **educativos**, buscando:
-
-* Reforzar la comprensión de los AFD
-* Servir como base para simuladores, visualizadores o extensiones futuras
-* Facilitar la validación manual y automática de autómatas
-
----
-
-##  Tecnologías utilizadas
-
-* **Python 3**
-* Tipado estático (`typing`)
-* Programación orientada a objetos
-* Entrada y salida por consola
-
----
-
-##  Uso académico
-
-Este motor puede ser utilizado como:
-
-* Herramienta de apoyo en cursos universitarios
-* Base para proyectos de Lenguajes Formales
-* Implementación de referencia para prácticas y evaluaciones
-* Comparador de resultados con herramientas gráficas
-
----
-
-##  Autor
-
-Desarrollado con fines educativos y académicos.
-Pensado para claridad, corrección formal y extensibilidad.
+Si prefieres, también puedes usar rutas absolutas en lugar de rutas relativas.
 
 ---
